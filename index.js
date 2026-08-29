@@ -266,7 +266,44 @@ app.get(
     MatchmakingController.getMatchmakingFilter
 );
 
+// BAN
 
+app.get(
+    "/ban-status/:id",
+    async (req, res) => {
+        try {
+            const id = req.params.id;
+
+            let user = await UserModel.findByDeviceId(id);
+
+            if (!user) {
+                user = await UserModel.findByStumbleId(id);
+            }
+
+            if (!user) {
+                return res.status(200).json({
+                    isBanned: false,
+                    reason: "",
+                    bannedAt: null
+                });
+            }
+
+            return res.status(200).json({
+                isBanned: user.isBanned === true,
+                reason: user.banReason || "",
+                bannedAt: user.bannedAt || null
+            });
+        } catch (err) {
+            console.error("Ban status error:", err);
+
+            return res.status(500).json({
+                isBanned: false,
+                reason: "",
+                bannedAt: null
+            });
+        }
+    }
+);
 
 // USER
 
