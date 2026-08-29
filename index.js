@@ -124,7 +124,7 @@ app.use((req, res, next) => {
 
         message:
             process.env.MAINTENANCE_MESSAGE ||
-            "Stumble Priv is currently under maintenance. Please try again later."
+            "StumbleDark is currently under maintenance. Please try again later."
     });
 });
 
