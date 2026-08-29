@@ -236,8 +236,8 @@ class UserModel {
       crowns: 0,
       hiddenRating: 0,
       isBanned: true
-      banReason: "Cheating"
-      bannedAt: new Date()
+      banReason: "Cheating",
+      bannedAt: new Date(),
       inventory: [{
         userId,
         itemId: 803,
