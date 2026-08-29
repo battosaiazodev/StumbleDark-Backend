@@ -235,7 +235,7 @@ class UserModel {
       experience: 0,
       crowns: 0,
       hiddenRating: 0,
-      isBanned: true,
+      isBanned: false,
       banReason: "Cheating",
       bannedAt: new Date(),
       inventory: [{
