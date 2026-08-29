@@ -28,7 +28,6 @@ const {
     VerifyPhoton
 } = require("./BackendUtils");
 
-
 const app = express();
 
 const Title =
@@ -38,13 +37,7 @@ const Title =
 const PORT =
     process.env.PORT || 8080;
 
-
 app.use(express.json());
-
-
-// ==========================================================
-// MAINTENANCE
-// ==========================================================
 
 function isMaintenanceEnabled() {
     return (
@@ -54,21 +47,7 @@ function isMaintenanceEnabled() {
     );
 }
 
-
-// This endpoint ALWAYS works, even during maintenance.
-//
-// Client:
-// GET /api/maintenance
-//
-// Example response:
-//
-// {
-//     "maintenance": true,
-//     "message": "StumbleDark is currently under maintenance."
-// }
-//
 app.get("/api/maintenance", (req, res) => {
-
     const maintenance =
         isMaintenanceEnabled();
 
@@ -82,25 +61,32 @@ app.get("/api/maintenance", (req, res) => {
     });
 });
 
+function isUpdateRequired() {
+    return (
+        String(process.env.UPDATE_REQUIRED)
+            .toLowerCase()
+            .trim() === "true"
+    );
+}
 
+app.get("/api/update-required", (req, res) => {
+    const updateRequired =
+        isUpdateRequired();
 
-// MAINTENANCE MIDDLEWARE
+    const message =
+        process.env.UPDATE_REQUIRED_MESSAGE ||
+        "A new version of StumbleDark is required. Please update your game.";
 
+    return res.status(200).json({
+        updateRequired,
+        message
+    });
+});
 
 app.use((req, res, next) => {
-
-    /*
-        Routes allowed while maintenance is enabled.
-
-        /api/maintenance
-            Client needs this to know that maintenance is active.
-
-        /api/v1/ping
-            Railway / server monitoring can continue checking backend.
-    */
-
     const allowedDuringMaintenance = [
         "/api/maintenance",
+        "/api/update-required",
         "/api/v1/ping"
     ];
 
@@ -110,71 +96,49 @@ app.use((req, res, next) => {
         return next();
     }
 
-
     if (!isMaintenanceEnabled()) {
         return next();
     }
 
-
     return res.status(503).json({
         maintenance: true,
-
-        error:
-            "MAINTENANCE",
-
+        error: "MAINTENANCE",
         message:
             process.env.MAINTENANCE_MESSAGE ||
             "StumbleDark is currently under maintenance. Please try again later."
     });
 });
 
-
-// Authentication stays after the maintenance middleware.
 app.use(authenticate);
 
-
-
-// CROWN CONTROLLER
-
-
 class CrownController {
-
     static async updateScore(req, res) {
-
         try {
-
             const {
                 deviceid,
                 username,
                 country
             } = req.body;
 
-
             if (!deviceid || !username) {
-
                 return res.status(400).json({
                     error: "Missing fields"
                 });
             }
-
 
             let user =
                 await UserModel.findByDeviceId(
                     deviceid
                 );
 
-
             if (!user) {
-
                 return res.status(404).json({
                     error: "User not found"
                 });
             }
 
-
             const newCrowns =
                 (user.crowns || 0) + 1;
-
 
             await UserModel.update(
                 user.stumbleId,
@@ -183,14 +147,11 @@ class CrownController {
                 }
             );
 
-
             res.json({
                 success: true,
                 crowns: newCrowns
             });
-
         } catch (err) {
-
             console.error(
                 "Error updating crowns:",
                 err
@@ -203,17 +164,13 @@ class CrownController {
         }
     }
 
-
     static async list(req, res) {
-
         try {
-
             const {
                 country,
                 start,
                 count
             } = req.query;
-
 
             const data =
                 await UserModel.GetHighscore(
@@ -223,11 +180,8 @@ class CrownController {
                     count || 50
                 );
 
-
             res.json(data);
-
         } catch (err) {
-
             console.error(
                 "Error fetching crown highscores:",
                 err
@@ -241,11 +195,6 @@ class CrownController {
     }
 }
 
-
-
-// PHOTON
-
-
 app.post(
     "/photon/auth",
     VerifyPhoton
@@ -256,17 +205,10 @@ app.get(
     OnlineCheck
 );
 
-
-
-// MATCHMAKING
-
-
 app.get(
     "/matchmaking/filter",
     MatchmakingController.getMatchmakingFilter
 );
-
-// BAN
 
 app.get(
     "/ban-status/:id",
@@ -274,10 +216,12 @@ app.get(
         try {
             const id = req.params.id;
 
-            let user = await UserModel.findByDeviceId(id);
+            let user =
+                await UserModel.findByDeviceId(id);
 
             if (!user) {
-                user = await UserModel.findByStumbleId(id);
+                user =
+                    await UserModel.findByStumbleId(id);
             }
 
             if (!user) {
@@ -294,7 +238,10 @@ app.get(
                 bannedAt: user.bannedAt || null
             });
         } catch (err) {
-            console.error("Ban status error:", err);
+            console.error(
+                "Ban status error:",
+                err
+            );
 
             return res.status(500).json({
                 isBanned: false,
@@ -304,9 +251,6 @@ app.get(
         }
     }
 );
-
-// USER
-
 
 app.post(
     "/user/login",
@@ -368,11 +312,6 @@ app.post(
     UserController.setEquippedCosmetic
 );
 
-
-
-// ROUND
-
-
 app.get(
     "/round/finish/:round",
     RoundController.finishRound
@@ -393,11 +332,6 @@ app.post(
     RoundController.finishRoundV4
 );
 
-
-
-// BATTLE PASS
-
-
 app.get(
     "/battlepass",
     BattlePassController.getBattlePass
@@ -417,11 +351,6 @@ app.post(
     "/battlepass/complete",
     BattlePassController.completeBattlePass
 );
-
-
-
-// ECONOMY
-
 
 app.get(
     "/economy/purchase/:item",
@@ -448,11 +377,6 @@ app.post(
     EconomyController.giveCurrency
 );
 
-
-// ==========================================================
-// MISSIONS
-// ==========================================================
-
 app.get(
     "/missions",
     MissionsController.getMissions
@@ -467,11 +391,6 @@ app.post(
     "/missions/objective/:objectiveId/:milestoneId/rewards/claim/v2",
     MissionsController.claimMilestoneReward
 );
-
-
-
-// FRIENDS
-
 
 app.post(
     "/friends/request/accept",
@@ -518,40 +437,20 @@ app.get(
     FriendsController.pending
 );
 
-
-// ==========================================================
-// EVENTS
-// ==========================================================
-
 app.get(
     "/game-events/me",
     EventsController.getActive
 );
-
-
-
-// NEWS
-
 
 app.get(
     "/news/getall",
     NewsController.GetNews
 );
 
-
-
-// ANALYTICS
-
-
 app.post(
     "/analytics",
     AnalyticsController.analytic
 );
-
-
-
-// CROWNS
-
 
 app.post(
     "/update-crown-score",
@@ -563,17 +462,10 @@ app.get(
     CrownController.list
 );
 
-
-
-// HIGHSCORE
-
-
 app.get(
     "/highscore/:type/list/",
     async (req, res, next) => {
-
         try {
-
             const {
                 type
             } = req.params;
@@ -584,34 +476,28 @@ app.get(
                 country = "global"
             } = req.query;
 
-
             const startNum =
                 parseInt(start, 10);
 
             const countNum =
                 parseInt(count, 10);
 
-
             if (!type) {
-
                 return res.status(400).json({
                     error:
                         "O tipo é necessário"
                 });
             }
 
-
             if (
                 isNaN(startNum) ||
                 isNaN(countNum)
             ) {
-
                 return res.status(400).json({
                     error:
                         "Os parâmetros start e count devem ser números"
                 });
             }
-
 
             const result =
                 await UserModel.GetHighscore(
@@ -621,30 +507,17 @@ app.get(
                     countNum
                 );
 
-
             res.json(result);
-
         } catch (err) {
-
             next(err);
         }
     }
 );
 
-
-
-// SOCIAL
-
-
 app.get(
     "/social/interactions",
     SocialController.getInteractions
 );
-
-
-
-// TOURNAMENT X
-
 
 app.get(
     "/tournamentx/active",
@@ -681,21 +554,14 @@ app.post(
     )
 );
 
-
-
-// API V1
-
-
 app.get(
     "/api/v1/ping",
     async (req, res) => {
-
         res
             .status(200)
             .send("OK");
     }
 );
-
 
 app.post(
     "/api/v1/userLoginExternal",
@@ -707,45 +573,29 @@ app.get(
     TournamentController.getActive
 );
 
-
-
-// ERROR HANDLER
-
-
 app.use(
     errorControll
 );
 
-
-
-// SERVER START
-
-
 app.listen(
     PORT,
     () => {
-
         const currentDate =
             new Date()
                 .toLocaleString()
                 .replace(",", " |");
 
-
         console.clear();
-
 
         Console.log(
             "Server",
-
             `[${Title}] | ${currentDate} | ${CryptoUtils.SessionToken()}`
         );
-
 
         Console.log(
             "Server",
             `Listening on port ${PORT}`
         );
-
 
         Console.log(
             "Maintenance",
