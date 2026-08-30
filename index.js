@@ -59,47 +59,45 @@ app.get("/api/maintenance", (req, res) => {
         maintenance,
         message
     });
-});
+}
+
+function parseVersion(version) {
+    if (!version) {
+        return [0, 0, 0];
+    }
+
+    const clean =
+        String(version)
+            .trim()
+            .replace(/^v/i, "");
+
+    const parts =
+        clean.split(".");
+
+    return [
+        parseInt(parts[0], 10) || 0,
+        parseInt(parts[1], 10) || 0,
+        parseInt(parts[2], 10) || 0
+    ];
+}
 
 function compareVersions(
-    currentVersion,
+    clientVersion,
     minimumVersion
 ) {
-    const current =
-        String(currentVersion || "")
-            .trim()
-            .split(".")
-            .map(Number);
+    const client =
+        parseVersion(clientVersion);
 
     const minimum =
-        String(minimumVersion || "")
-            .trim()
-            .split(".")
-            .map(Number);
+        parseVersion(minimumVersion);
 
-    const length =
-        Math.max(
-            current.length,
-            minimum.length
-        );
-
-    for (let i = 0; i < length; i++) {
-        const currentPart =
-            Number.isFinite(current[i])
-                ? current[i]
-                : 0;
-
-        const minimumPart =
-            Number.isFinite(minimum[i])
-                ? minimum[i]
-                : 0;
-
-        if (currentPart < minimumPart) {
-            return -1;
+    for (let i = 0; i < 3; i++) {
+        if (client[i] > minimum[i]) {
+            return 1;
         }
 
-        if (currentPart > minimumPart) {
-            return 1;
+        if (client[i] < minimum[i]) {
+            return -1;
         }
     }
 
@@ -107,36 +105,49 @@ function compareVersions(
 }
 
 app.get("/api/update-required", (req, res) => {
-    const currentVersion =
-        String(req.query.version || "")
-            .trim();
+    const clientVersion =
+        req.query.version;
 
     const minimumVersion =
-        String(process.env.MINIMUM_VERSION || "")
-            .trim();
+        process.env.MINIMUM_VERSION ||
+        "1.0.0";
 
     const message =
         process.env.UPDATE_REQUIRED_MESSAGE ||
         "A new version of StumbleDark is required. Please update your game.";
 
-    if (
-        !currentVersion ||
-        !minimumVersion
-    ) {
-        return res.status(200).json({
+    if (!clientVersion) {
+        return res.status(400).json({
             updateRequired: false,
-            message
+            error: "VERSION_MISSING",
+            message:
+                "Game version was not provided."
         });
     }
 
-    const updateRequired =
+    const comparison =
         compareVersions(
-            currentVersion,
+            clientVersion,
             minimumVersion
-        ) < 0;
+        );
+
+    const updateRequired =
+        comparison < 0;
+
+    console.log(
+        "[Update Check]",
+        "Client:",
+        clientVersion,
+        "| Minimum:",
+        minimumVersion,
+        "| Required:",
+        updateRequired
+    );
 
     return res.status(200).json({
         updateRequired,
+        clientVersion,
+        minimumVersion,
         message
     });
 });
@@ -149,7 +160,9 @@ app.use((req, res, next) => {
     ];
 
     if (
-        allowedDuringMaintenance.includes(req.path)
+        allowedDuringMaintenance.includes(
+            req.path
+        )
     ) {
         return next();
     }
@@ -272,14 +285,19 @@ app.get(
     "/ban-status/:id",
     async (req, res) => {
         try {
-            const id = req.params.id;
+            const id =
+                req.params.id;
 
             let user =
-                await UserModel.findByDeviceId(id);
+                await UserModel.findByDeviceId(
+                    id
+                );
 
             if (!user) {
                 user =
-                    await UserModel.findByStumbleId(id);
+                    await UserModel.findByStumbleId(
+                        id
+                    );
             }
 
             if (!user) {
@@ -291,9 +309,12 @@ app.get(
             }
 
             return res.status(200).json({
-                isBanned: user.isBanned === true,
-                reason: user.banReason || "",
-                bannedAt: user.bannedAt || null
+                isBanned:
+                    user.isBanned === true,
+                reason:
+                    user.banReason || "",
+                bannedAt:
+                    user.bannedAt || null
             });
         } catch (err) {
             console.error(
@@ -535,10 +556,16 @@ app.get(
             } = req.query;
 
             const startNum =
-                parseInt(start, 10);
+                parseInt(
+                    start,
+                    10
+                );
 
             const countNum =
-                parseInt(count, 10);
+                parseInt(
+                    count,
+                    10
+                );
 
             if (!type) {
                 return res.status(400).json({
