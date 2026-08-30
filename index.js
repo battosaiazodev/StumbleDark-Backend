@@ -61,21 +61,79 @@ app.get("/api/maintenance", (req, res) => {
     });
 });
 
-function isUpdateRequired() {
-    return (
-        String(process.env.UPDATE_REQUIRED)
-            .toLowerCase()
-            .trim() === "true"
-    );
+function compareVersions(
+    currentVersion,
+    minimumVersion
+) {
+    const current =
+        String(currentVersion || "")
+            .trim()
+            .split(".")
+            .map(Number);
+
+    const minimum =
+        String(minimumVersion || "")
+            .trim()
+            .split(".")
+            .map(Number);
+
+    const length =
+        Math.max(
+            current.length,
+            minimum.length
+        );
+
+    for (let i = 0; i < length; i++) {
+        const currentPart =
+            Number.isFinite(current[i])
+                ? current[i]
+                : 0;
+
+        const minimumPart =
+            Number.isFinite(minimum[i])
+                ? minimum[i]
+                : 0;
+
+        if (currentPart < minimumPart) {
+            return -1;
+        }
+
+        if (currentPart > minimumPart) {
+            return 1;
+        }
+    }
+
+    return 0;
 }
 
 app.get("/api/update-required", (req, res) => {
-    const updateRequired =
-        isUpdateRequired();
+    const currentVersion =
+        String(req.query.version || "")
+            .trim();
+
+    const minimumVersion =
+        String(process.env.MINIMUM_VERSION || "")
+            .trim();
 
     const message =
         process.env.UPDATE_REQUIRED_MESSAGE ||
         "A new version of StumbleDark is required. Please update your game.";
+
+    if (
+        !currentVersion ||
+        !minimumVersion
+    ) {
+        return res.status(200).json({
+            updateRequired: false,
+            message
+        });
+    }
+
+    const updateRequired =
+        compareVersions(
+            currentVersion,
+            minimumVersion
+        ) < 0;
 
     return res.status(200).json({
         updateRequired,
