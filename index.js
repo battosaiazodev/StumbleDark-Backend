@@ -59,7 +59,7 @@ app.get("/api/maintenance", (req, res) => {
         maintenance,
         message
     });
-}
+});
 
 function parseVersion(version) {
     if (!version) {
@@ -687,6 +687,12 @@ app.listen(
             isMaintenanceEnabled()
                 ? "ENABLED"
                 : "DISABLED"
+        );
+
+        Console.log(
+            "Minimum Version",
+            process.env.MINIMUM_VERSION ||
+            "1.0.0"
         );
     }
 );
