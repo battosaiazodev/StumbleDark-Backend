@@ -257,7 +257,7 @@ class UserModel {
         { name: "coins", amount: 100, secondsSince: 0, secondsPerUnit: 0, maxAmount: 0, lastGiven: now },
         { name: "remove_ads", amount: 0, secondsSince: 0, secondsPerUnit: 0, maxAmount: 2, lastGiven: now },
         { name: "video", amount: 50, secondsSince: 0, secondsPerUnit: 0, maxAmount: 5000, lastGiven: now },
-        { name: "gems", amount: 500, secondsSince: 0, secondsPerUnit: 0, maxAmount: 0, lastGiven: now },
+        { name: "gems", amount: 0, secondsSince: 0, secondsPerUnit: 0, maxAmount: 0, lastGiven: now },
         { name: "video_gems", amount: 10, secondsSince: 0, secondsPerUnit: 5400, maxAmount: 10, lastGiven: now },
         { name: "video_coins", amount: 8, secondsSince: 0, secondsPerUnit: 10800, maxAmount: 8, lastGiven: now },
         { name: "special_video", amount: 3, secondsSince: 0, secondsPerUnit: 28800, maxAmount: 3, lastGiven: now },
