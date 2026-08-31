@@ -1724,26 +1724,323 @@ class FriendsController {
 }
 
 class NewsController {
-  static async GetNews(req, res) {
-    try {
-      const newsList = await database.collections.News
-        .find()
-        .sort({ timestamp: -1 })
-        .toArray();
+    static async GetNews(req, res) {
+        try {
+            const newsList =
+                await database.collections.News
+                    .find({})
+                    .sort({ _id: -1 })
+                    .toArray();
 
-      const news = newsList.map(news => ({
-        Header: news.header,
-        Message: news.message,
-        TimeStamp: news.timestamp
-      }));
+            const news =
+                newsList.map(news => ({
+                    Header: news.header || "",
+                    Message: news.message || "",
+                    TimeStamp: news.timestamp || ""
+                }));
 
-      res.json(news);
-    } catch (err) {
-      Console.error('News', 'Get error:', err);
-      res.status(500).json({ message: 'Error fetching news' });
+            return res.status(200).json(news);
+        } catch (err) {
+            Console.error(
+                "News",
+                "Get error:",
+                err
+            );
+
+            return res.status(500).json({
+                message: "Error fetching news"
+            });
+        }
     }
-  }
+
+    static async CreateNews(req, res) {
+        try {
+            const {
+                header,
+                message,
+                timestamp
+            } = req.body;
+
+            if (
+                typeof header !== "string" ||
+                typeof message !== "string" ||
+                typeof timestamp !== "string"
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "header, message and timestamp are required."
+                });
+            }
+
+            const cleanHeader =
+                header.trim();
+
+            const cleanMessage =
+                message.trim();
+
+            const cleanTimestamp =
+                timestamp.trim();
+
+            if (
+                !cleanHeader ||
+                !cleanMessage ||
+                !cleanTimestamp
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "header, message and timestamp cannot be empty."
+                });
+            }
+
+            const now =
+                new Date();
+
+            const result =
+                await database.collections.News.insertOne({
+                    header: cleanHeader,
+                    message: cleanMessage,
+                    timestamp: cleanTimestamp,
+                    createdAt: now,
+                    updatedAt: now
+                });
+
+            return res.status(201).json({
+                success: true,
+                message:
+                    "News created successfully.",
+                news: {
+                    id:
+                        result.insertedId.toString(),
+                    header:
+                        cleanHeader,
+                    message:
+                        cleanMessage,
+                    timestamp:
+                        cleanTimestamp
+                }
+            });
+        } catch (err) {
+            Console.error(
+                "News",
+                "Create error:",
+                err
+            );
+
+            return res.status(500).json({
+                success: false,
+                message:
+                    "Error creating news."
+            });
+        }
+    }
+
+    static async UpdateNews(req, res) {
+        try {
+            const {
+                id
+            } = req.params;
+
+            if (
+                !ObjectId.isValid(id)
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "Invalid news ID."
+                });
+            }
+
+            const updates = {};
+
+            if (
+                req.body.header !==
+                undefined
+            ) {
+                if (
+                    typeof req.body.header !==
+                    "string"
+                ) {
+                    return res.status(400).json({
+                        success: false,
+                        message:
+                            "header must be a string."
+                    });
+                }
+
+                updates.header =
+                    req.body.header.trim();
+            }
+
+            if (
+                req.body.message !==
+                undefined
+            ) {
+                if (
+                    typeof req.body.message !==
+                    "string"
+                ) {
+                    return res.status(400).json({
+                        success: false,
+                        message:
+                            "message must be a string."
+                    });
+                }
+
+                updates.message =
+                    req.body.message.trim();
+            }
+
+            if (
+                req.body.timestamp !==
+                undefined
+            ) {
+                if (
+                    typeof req.body.timestamp !==
+                    "string"
+                ) {
+                    return res.status(400).json({
+                        success: false,
+                        message:
+                            "timestamp must be a string."
+                    });
+                }
+
+                updates.timestamp =
+                    req.body.timestamp.trim();
+            }
+
+            if (
+                Object.keys(updates).length ===
+                0
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "Nothing to update."
+                });
+            }
+
+            updates.updatedAt =
+                new Date();
+
+            const objectId =
+                new ObjectId(id);
+
+            const result =
+                await database.collections.News.updateOne(
+                    {
+                        _id:
+                            objectId
+                    },
+                    {
+                        $set:
+                            updates
+                    }
+                );
+
+            if (
+                result.matchedCount ===
+                0
+            ) {
+                return res.status(404).json({
+                    success: false,
+                    message:
+                        "News item not found."
+                });
+            }
+
+            const updatedNews =
+                await database.collections.News.findOne({
+                    _id:
+                        objectId
+                });
+
+            return res.status(200).json({
+                success: true,
+                message:
+                    "News updated successfully.",
+                news: {
+                    id:
+                        updatedNews._id.toString(),
+                    header:
+                        updatedNews.header || "",
+                    message:
+                        updatedNews.message || "",
+                    timestamp:
+                        updatedNews.timestamp || ""
+                }
+            });
+        } catch (err) {
+            Console.error(
+                "News",
+                "Update error:",
+                err
+            );
+
+            return res.status(500).json({
+                success: false,
+                message:
+                    "Error updating news."
+            });
+        }
+    }
+
+    static async DeleteNews(req, res) {
+        try {
+            const {
+                id
+            } = req.params;
+
+            if (
+                !ObjectId.isValid(id)
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "Invalid news ID."
+                });
+            }
+
+            const result =
+                await database.collections.News.deleteOne({
+                    _id:
+                        new ObjectId(id)
+                });
+
+            if (
+                result.deletedCount ===
+                0
+            ) {
+                return res.status(404).json({
+                    success: false,
+                    message:
+                        "News item not found."
+                });
+            }
+
+            return res.status(200).json({
+                success: true,
+                message:
+                    "News deleted successfully."
+            });
+        } catch (err) {
+            Console.error(
+                "News",
+                "Delete error:",
+                err
+            );
+
+            return res.status(500).json({
+                success: false,
+                message:
+                    "Error deleting news."
+            });
+        }
+    }
 }
+
 
 class MissionsController {
   static async getMissions(req, res) {
