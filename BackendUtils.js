@@ -1724,35 +1724,26 @@ class FriendsController {
 }
 
 class NewsController {
-    static async GetNews(req, res) {
-        try {
-            const newsList =
-                await database.collections.News
-                    .find({})
-                    .sort({ _id: -1 })
-                    .toArray();
+  static async GetNews(req, res) {
+    try {
+      const newsList = await database.collections.News
+        .find()
+        .sort({ timestamp: -1 })
+        .toArray();
 
-            const news =
-                newsList.map(news => ({
-                    Header: news.header || "",
-                    Message: news.message || "",
-                    TimeStamp: news.timestamp || ""
-                }));
+      const news = newsList.map(news => ({
+        Header: news.header,
+        Message: news.message,
+        TimeStamp: news.timestamp
+      }));
 
-            return res.status(200).json(news);
-        } catch (err) {
-            Console.error(
-                "News",
-                "Get error:",
-                err
-            );
-
-            return res.status(500).json({
-                message: "Error fetching news"
-            });
-        }
+      res.json(news);
+    } catch (err) {
+      Console.error('News', 'Get error:', err);
+      res.status(500).json({ message: 'Error fetching news' });
     }
-
+  }
+}
     static async CreateNews(req, res) {
         try {
             const {
