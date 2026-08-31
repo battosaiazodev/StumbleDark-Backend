@@ -527,6 +527,22 @@ app.get(
 );
 
 app.post(
+    "/news/create",
+    NewsController.CreateNews
+);
+
+app.put(
+    "/news/:id",
+    NewsController.UpdateNews
+);
+
+app.delete(
+    "/news/:id",
+    NewsController.DeleteNews
+);
+
+
+app.post(
     "/analytics",
     AnalyticsController.analytic
 );
